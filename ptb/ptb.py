@@ -3,33 +3,13 @@ import logging
 import configparser
 from pathlib import Path
 from typing import Optional, Tuple
+from const import CONFIG_SECTIONS
 
 
 class Configuration:
     def __init__(self, config_file: Optional[str]):
         self.config_file = config_file
         self.config = configparser.ConfigParser()
-        self.sections = {
-            'RemoteSSH': [
-                ('host', 'IP of remote SSH server:', ''),
-                ('remote_port', 'Port of remote SSH server:', 443),
-                ('local_port',
-                 'Local port on remote SSH server for forwarding:', 2200)
-            ],
-            'RemoteWeb': [
-                ('host',
-                 'Hostname or IP of remote web server for commands:', ''),
-                ('file_name',
-                 'Name of hosted file containing the commands to execute:',
-                 'cmd.txt')
-            ],
-            'Local': [
-                ('setup_vnc',
-                 'Should a VNC server be set up on the pentest box? '
-                 '(won\'t start automatically)',
-                 'no')
-            ]
-        }
 
     def load(self) -> bool:
         """Loads config and makes sure all values are set
@@ -42,11 +22,11 @@ class Configuration:
         if self.config_file:
             self._load_from_file()
 
-        for section in self.sections:
+        for section in CONFIG_SECTIONS:
             if section not in self.config.sections():
                 self.config[section] = {}
 
-            for key in self.sections[section]:
+            for key in CONFIG_SECTIONS[section]:
                 try:
                     value = self.config[section][key[0]]
                 except KeyError:
