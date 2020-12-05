@@ -1,0 +1,11 @@
+*.swp
+*.swo
+*.pyc
+*.egg-info
+.DS_Store
+tags
+
+scratch.md
+
+venv/
+__pycache__/
