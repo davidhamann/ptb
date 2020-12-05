@@ -4,6 +4,7 @@
 *.egg-info
 .DS_Store
 tags
+TODO.md
 
 scratch.md
 
