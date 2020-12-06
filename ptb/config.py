@@ -1,13 +1,13 @@
 import logging
 import configparser
 from typing import Optional, Tuple
-from .const import CONFIG_SECTIONS
+from ptb.const import CONFIG_SECTIONS
 
 
 class Config:
     def __init__(self, config_file: Optional[str]):
         self.config_file = config_file
-        self.config = configparser.ConfigParser()
+        self.parser = configparser.ConfigParser()
 
     def load(self) -> bool:
         """Loads config and makes sure all values are set
@@ -21,12 +21,12 @@ class Config:
             self._load_from_file()
 
         for section in CONFIG_SECTIONS:
-            if section not in self.config.sections():
-                self.config[section] = {}
+            if section not in self.parser.sections():
+                self.parser[section] = {}
 
             for key in CONFIG_SECTIONS[section]:
                 try:
-                    value = self.config[section][key[0]]
+                    value = self.parser[section][key[0]]
                 except KeyError:
                     # ask for config value
                     help_text = key[1]
@@ -56,10 +56,10 @@ class Config:
             return
 
         try:
-            self.config.read(self.config_file)
+            self.parser.read(self.config_file)
         except configparser.Error:
             logging.warning('Failed to read config file %s' % self.config_file)
             return
 
         logging.info(('Loaded config file with sections: %s' %
-                      self.config.sections()))
+                      self.parser.sections()))
