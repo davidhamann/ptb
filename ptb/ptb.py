@@ -1,4 +1,5 @@
 import os
+import re
 import time
 import sys
 import logging
@@ -7,7 +8,9 @@ from getpass import getpass
 from typing import Optional, List, TextIO
 from pathlib import Path
 from ptb.config import Config
-from ptb.const import REQUIRED_PACKAGES, VNC_PACKAGES, SSH_KEY_PATH, HOME_PATH
+from ptb.const import (
+        REQUIRED_PACKAGES, VNC_PACKAGES,
+        SSH_KEY_PATH, HOME_PATH, SERVICE_TEMPLATE)
 
 
 def exec(command: List, verbose: bool = False, stdout: Optional[TextIO] = None) -> int:
@@ -18,9 +21,9 @@ def exec(command: List, verbose: bool = False, stdout: Optional[TextIO] = None) 
     if stdout:
         # use given file handle for redirection
         try:
-            return subprocess.run(command, stdout=stdout).returncode
+            return subprocess.run(command, check=True, stdout=stdout).returncode
         except subprocess.CalledProcessError as error:
-            logging.error('Command "%s" failed with return %d' % joined, error.returncode)
+            logging.error('Command "%s" failed with return %d' % (joined, error.returncode))
             return error.returncode
 
     try:
@@ -111,6 +114,37 @@ class Ptb:
         if exec(['sshpass', '-e', 'ssh-copy-id', '-i',
                  str(SSH_KEY_PATH), '-p', ssh_port,
                  f'{ssh_user}@{ssh_host}'], verbose) != 0:
+            return False
+
+        # test login
+        logging.info('Testing login...')
+        if exec(['ssh', '-q', '-o', 'BatchMode=yes', '-i',
+            str(SSH_KEY_PATH), f'{ssh_user}@{ssh_host}', '-p', ssh_port, 'true']) != 0:
+            return False
+        logging.info('Login works!')
+
+        # add autossh service
+        logging.info('Writing service file for autossh')
+        with open('/etc/systemd/system/ptb.service', 'w') as service:
+            replacements = {
+                    '{{remote_forward_port}}': self.config.parser['RemoteSSH']['LocalPort'],
+                    '{{port}}': self.config.parser['RemoteSSH']['RemotePort'],
+                    '{{user}}': ssh_user,
+                    '{{host}}': ssh_host,
+                    '{{key_path}}': str(SSH_KEY_PATH)
+                    }
+            replacements = dict((re.escape(k), v) for k, v in replacements.items())
+            pattern = re.compile("|".join(replacements.keys()))
+            service_config = pattern.sub(
+                    lambda x: replacements[re.escape(x.group(0))], SERVICE_TEMPLATE)
+            service.write(service_config)
+
+        logging.info('Enabling service')
+        if exec(['systemctl', 'enable', 'ptb.service'], verbose) != 0:
+            return False
+
+        logging.info('Starting service')
+        if exec(['systemctl', 'start', 'ptb.service'], verbose) != 0:
             return False
 
         return True

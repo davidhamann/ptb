@@ -36,3 +36,15 @@ REQUIRED_PACKAGES = ['autossh', 'openssh-server', 'sshpass']
 VNC_PACKAGES = ['novnc', 'x11vnc']
 HOME_PATH = Path().home()
 SSH_KEY_PATH = HOME_PATH / '.ssh/dropbox'
+
+SERVICE_TEMPLATE = """[Unit]
+Description=AutoSSH to remote server after network comes online
+After=network-online.target
+
+[Service]
+Environment="AUTOSSH_GATETIME=0"
+ExecStart=/usr/bin/autossh -M 0 -o "ExitOnForwardFailure=yes" -o "ServerAliveInterval 30" -o "ServerAliveCountMax 3" -N -R {{remote_forward_port}}:127.0.0.1:22 {{user}}@{{host}} -i {{key_path}} -p {{port}}
+
+[Install]
+WantedBy=multi-user.target
+"""
