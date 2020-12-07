@@ -3,15 +3,25 @@ import time
 import sys
 import logging
 import subprocess
-from typing import List
+from getpass import getpass
+from typing import Optional, List, TextIO
 from pathlib import Path
 from ptb.config import Config
-from ptb.const import REQUIRED_PACKAGES, VNC_PACKAGES
+from ptb.const import REQUIRED_PACKAGES, VNC_PACKAGES, SSH_KEY_PATH, HOME_PATH
 
 
-def exec(command: List, verbose=False) -> int:
+def exec(command: List, verbose: bool = False, stdout: Optional[TextIO] = None) -> int:
     assert isinstance(command, type([]))
-    logging.info('Running %s' % ' '.join(command))
+    joined = ' '.join(command)
+    logging.info('Running %s' % joined)
+
+    if stdout:
+        # use given file handle for redirection
+        try:
+            return subprocess.run(command, stdout=stdout).returncode
+        except subprocess.CalledProcessError as error:
+            logging.error('Command "%s" failed with return %d' % joined, error.returncode)
+            return error.returncode
 
     try:
         proc = subprocess.Popen(command, stdout=subprocess.PIPE)
@@ -64,6 +74,44 @@ class Ptb:
             package_list  = additional_packages.split(' ')
             if exec(['apt-get', 'install', '-y'] + package_list, verbose) != 0:
                 return False
+
+        # enable openssh server
+        if exec(['systemctl', 'enable', 'ssh'], verbose) != 0:
+            return False
+
+        # -----------
+
+        ssh_host = self.config.parser['RemoteSSH']['Host']
+        ssh_port = self.config.parser['RemoteSSH']['RemotePort']
+
+        # delete previous key if existing
+        if exec(['rm', '-f', str(SSH_KEY_PATH)], verbose) != 0:
+            return False
+
+        # generate keypair for remote server
+        if exec(['ssh-keygen', '-f', str(SSH_KEY_PATH), '-N', ''], verbose) != 0:
+            return False
+
+        # clean known_hosts and re-add remote server
+        exec(['touch', str(HOME_PATH / '.ssh/known_hosts')], verbose)
+        if exec(['ssh-keygen', '-R', ssh_host + ':' + ssh_port], verbose) != 0:
+            return False
+
+        with open(HOME_PATH / '.ssh/known_hosts', 'a') as known_hosts:
+            if exec(['ssh-keyscan', '-H', '-p', ssh_port, ssh_host],
+                  verbose, stdout=known_hosts) != 0:
+                return False
+
+        # upload key to remote server
+        ssh_user = self.config.parser['RemoteSSH']['User']
+        os.environ['SSHPASS'] = getpass(
+                f'Enter the password for the user {ssh_user} '
+                f'at {ssh_host} (for key upload): ')
+
+        if exec(['sshpass', '-e', 'ssh-copy-id', '-i',
+                 str(SSH_KEY_PATH), '-p', ssh_port,
+                 f'{ssh_user}@{ssh_host}'], verbose) != 0:
+            return False
 
         return True
 

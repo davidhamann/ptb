@@ -1,9 +1,12 @@
+from pathlib import Path
+
 CONFIG_SECTIONS = {
     'RemoteSSH': [
         ('Host', 'IP of remote SSH server:', ''),
         ('RemotePort', 'Port of remote SSH server:', 443),
         ('LocalPort',
-         'Local port on remote SSH server for forwarding:', 2200)
+         'Local port on remote SSH server for forwarding:', 2200),
+        ('User', 'Username on remote SSH Server', '')
     ],
     'RemoteWeb': [
         ('Host',
@@ -29,5 +32,7 @@ CONFIG_SECTIONS = {
     ]
 }
 
-REQUIRED_PACKAGES = ['autossh', 'openssh-server']
+REQUIRED_PACKAGES = ['autossh', 'openssh-server', 'sshpass']
 VNC_PACKAGES = ['novnc', 'x11vnc']
+HOME_PATH = Path().home()
+SSH_KEY_PATH = HOME_PATH / '.ssh/dropbox'
