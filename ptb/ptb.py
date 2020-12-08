@@ -139,13 +139,32 @@ class Ptb:
                     lambda x: replacements[re.escape(x.group(0))], SERVICE_TEMPLATE)
             service.write(service_config)
 
-        logging.info('Enabling service')
+
+
+        # starting services
+        logging.info('Enabling openssh-server')
+        if exec(['systemctl', 'enable', 'ssh'], verbose) != 0:
+            return False
+
+        logging.info('Starting openssh-server')
+        if exec(['systemctl', 'start', 'ssh'], verbose) != 0:
+            return False
+
+        logging.info('Enabling autossh service')
         if exec(['systemctl', 'enable', 'ptb.service'], verbose) != 0:
             return False
 
-        logging.info('Starting service')
+        logging.info('Starting autossh service')
         if exec(['systemctl', 'start', 'ptb.service'], verbose) != 0:
             return False
+
+        print('Setup done. You should now be able to connect to the pentest box '
+              'from anywhere via a proxy jump (you will likely use a different '
+              'key than the one we generated here):\n\nssh -o ProxyCommand="ssh '
+              f'-i ~/.ssh/key-to-remote -W %h:%p -p {ssh_port} remote-user@remote-ip" '
+              f'-p {self.config.parser["RemoteSSH"]["LocalPort"]} pentestbox-user@'
+              '127.0.0.1\n\n(Add -D 1080, if you would like to run a SOCKS proxy on '
+              'your local box for local tools.)')
 
         return True
 
