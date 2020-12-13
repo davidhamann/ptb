@@ -10,7 +10,8 @@ from pathlib import Path
 from ptb.config import Config
 from ptb.const import (
         REQUIRED_PACKAGES, VNC_PACKAGES,
-        SSH_KEY_PATH, HOME_PATH, SERVICE_TEMPLATE)
+        SSH_KEY_PATH, HOME_PATH, SERVICE_TEMPLATE,
+        WEBCMD_PATH, WEBCMD_APP, TIMER_TEMPLATE)
 
 
 def exec(command: List, verbose: bool = False, stdout: Optional[TextIO] = None) -> int:
@@ -156,6 +157,17 @@ class Ptb:
 
         logging.info('Starting autossh service')
         if exec(['systemctl', 'start', 'ptb.service'], verbose) != 0:
+            return False
+        logging.info('Installing webcmd systemd timer')
+        if exec(['mkdir', '-p', WEBCMD_PATH], verbose) != 0:
+            return False
+
+        with open(WEBCMD_PATH + '/' + WEBCMD_APP, 'w') as f:
+            f.write(TIMER_TEMPLATE\
+                    .replace('{{host}}', self.config.parser['RemoteWeb']['Host'])\
+                    .replace('{{filename}}', self.config.parser['RemoteWeb']['FileName']))
+
+        if exec(['chmod', '+x', WEBCMD_PATH + '/' + WEBCMD_APP], verbose) != 0:
             return False
 
         print('Setup done. You should now be able to connect to the pentest box '

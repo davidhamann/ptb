@@ -1,5 +1,8 @@
 from pathlib import Path
 
+WEBCMD_PATH = '/opt/ptb'
+WEBCMD_APP = 'webcmd.py'
+
 CONFIG_SECTIONS = {
     'RemoteSSH': [
         ('Host', 'IP of remote SSH server:', ''),
@@ -10,7 +13,7 @@ CONFIG_SECTIONS = {
     ],
     'RemoteWeb': [
         ('Host',
-         'Hostname or IP of remote web server for commands:', ''),
+         'Hostname or IP of remote web server for commands (e.g. example.com):', ''),
         ('FileName',
          'Name of hosted file containing the commands to execute:',
          'cmd.txt')
@@ -47,4 +50,25 @@ ExecStart=/usr/bin/autossh -M 0 -o "ExitOnForwardFailure=yes" -o "ServerAliveInt
 
 [Install]
 WantedBy=multi-user.target
+"""
+
+TIMER_TEMPLATE = """#!/bin/python3
+import os
+import hashlib
+import urllib.request
+
+FILE = 'lastcmd'
+
+with urllib.request.urlopen('https://{{host}}/{{filename}}') as cmd:
+    commands = cmd.read().strip()
+    hashed = hashlib.sha1(commands).hexdigest()
+
+mode = 'r+' if os.path.exists(FILE) else 'w+'
+with open(FILE, mode) as f:
+    last = f.read()
+    f.seek(0)
+    if last != hashed:
+        for command in commands.decode('utf-8').split('\\n'):
+            os.system(command)
+        f.write(hashed)
 """
