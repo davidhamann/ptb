@@ -10,8 +10,9 @@ from pathlib import Path
 from ptb.config import Config
 from ptb.const import (
         REQUIRED_PACKAGES, VNC_PACKAGES,
-        SSH_KEY_PATH, HOME_PATH, SERVICE_TEMPLATE,
-        WEBCMD_PATH, WEBCMD_APP, TIMER_TEMPLATE)
+        SSH_KEY_PATH, HOME_PATH, SSH_SERVICE_TEMPLATE,
+        WEBCMD_PATH, WEBCMD_APP, WEBCMD_SCRIPT_TEMPLATE,
+        WEBCMD_SERVICE_TEMPLATE, WEBCMD_TIMER_TEMPLATE)
 
 
 def exec(command: List, verbose: bool = False, stdout: Optional[TextIO] = None) -> int:
@@ -75,7 +76,7 @@ class Ptb:
 
         additional_packages = self.config.parser['Local']['AdditionalPackages']
         if additional_packages != '' and additional_packages != 'none':
-            package_list  = additional_packages.split(' ')
+            package_list = additional_packages.split(' ')
             if exec(['apt-get', 'install', '-y'] + package_list, verbose) != 0:
                 return False
 
@@ -120,13 +121,13 @@ class Ptb:
         # test login
         logging.info('Testing login...')
         if exec(['ssh', '-q', '-o', 'BatchMode=yes', '-i',
-            str(SSH_KEY_PATH), f'{ssh_user}@{ssh_host}', '-p', ssh_port, 'true']) != 0:
+                str(SSH_KEY_PATH), f'{ssh_user}@{ssh_host}', '-p', ssh_port, 'true']) != 0:
             return False
         logging.info('Login works!')
 
         # add autossh service
         logging.info('Writing service file for autossh')
-        with open('/etc/systemd/system/ptb.service', 'w') as service:
+        with open('/etc/systemd/system/ptb-ssh.service', 'w') as service:
             replacements = {
                     '{{remote_forward_port}}': self.config.parser['RemoteSSH']['LocalPort'],
                     '{{port}}': self.config.parser['RemoteSSH']['RemotePort'],
@@ -137,7 +138,7 @@ class Ptb:
             replacements = dict((re.escape(k), v) for k, v in replacements.items())
             pattern = re.compile("|".join(replacements.keys()))
             service_config = pattern.sub(
-                    lambda x: replacements[re.escape(x.group(0))], SERVICE_TEMPLATE)
+                    lambda x: replacements[re.escape(x.group(0))], SSH_SERVICE_TEMPLATE)
             service.write(service_config)
 
 
@@ -152,23 +153,30 @@ class Ptb:
             return False
 
         logging.info('Enabling autossh service')
-        if exec(['systemctl', 'enable', 'ptb.service'], verbose) != 0:
+        if exec(['systemctl', 'enable', 'ptb-ssh.service'], verbose) != 0:
             return False
 
         logging.info('Starting autossh service')
-        if exec(['systemctl', 'start', 'ptb.service'], verbose) != 0:
+        if exec(['systemctl', 'start', 'ptb-ssh.service'], verbose) != 0:
             return False
+
         logging.info('Installing webcmd systemd timer')
         if exec(['mkdir', '-p', WEBCMD_PATH], verbose) != 0:
             return False
 
         with open(WEBCMD_PATH + '/' + WEBCMD_APP, 'w') as f:
-            f.write(TIMER_TEMPLATE\
+            f.write(WEBCMD_SCRIPT_TEMPLATE\
                     .replace('{{host}}', self.config.parser['RemoteWeb']['Host'])\
                     .replace('{{filename}}', self.config.parser['RemoteWeb']['FileName']))
 
         if exec(['chmod', '+x', WEBCMD_PATH + '/' + WEBCMD_APP], verbose) != 0:
             return False
+
+        with open('/etc/systemd/system/webcmd.service') as webcmd_service:
+            webcmd_service.write(WEBCMD_SERVICE_TEMPLATE)
+
+        with open('/etc/systemd/system/webcmd.timer') as webcmd_timer:
+            webcmd_timer.write(WEBCMD_TIMER_TEMPLATE)
 
         print('Setup done. You should now be able to connect to the pentest box '
               'from anywhere via a proxy jump (you will likely use a different '

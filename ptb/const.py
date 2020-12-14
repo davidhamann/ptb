@@ -40,7 +40,7 @@ VNC_PACKAGES = ['novnc', 'x11vnc']
 HOME_PATH = Path().home()
 SSH_KEY_PATH = HOME_PATH / '.ssh/dropbox'
 
-SERVICE_TEMPLATE = """[Unit]
+SSH_SERVICE_TEMPLATE = """[Unit]
 Description=AutoSSH to remote server after network comes online
 After=network-online.target
 
@@ -52,7 +52,28 @@ ExecStart=/usr/bin/autossh -M 0 -o "ExitOnForwardFailure=yes" -o "ServerAliveInt
 WantedBy=multi-user.target
 """
 
-TIMER_TEMPLATE = """#!/bin/python3
+WEBCMD_SERVICE_TEMPLATE = f"""[Unit]
+Description=Check remote server for commands to execute
+
+[Service]
+Type=oneshot
+ExecStart={WEBCMD_PATH}/{WEBCMD_APP}
+
+[Install]
+WantedBy=multi-user.target
+"""
+
+WEBCMD_TIMER_TEMPLATE = """[Unit]
+Description=Check every two minutes for new commands to execute
+
+[Timer]
+OnCalendar=*-*-* *:0/5:*
+
+[Install]
+WantedBy=timers.target
+"""
+
+WEBCMD_SCRIPT_TEMPLATE = """#!/bin/python3
 import os
 import hashlib
 import urllib.request
