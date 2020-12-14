@@ -78,7 +78,7 @@ import os
 import hashlib
 import urllib.request
 
-FILE = 'lastcmd'
+FILE = '/opt/ptb/lastcmd'
 
 with urllib.request.urlopen('https://{{host}}/{{filename}}') as cmd:
     commands = cmd.read().strip()
