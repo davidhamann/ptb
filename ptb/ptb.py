@@ -172,16 +172,9 @@ class Ptb:
         if exec(['chmod', '+x', WEBCMD_PATH + '/' + WEBCMD_APP], verbose) != 0:
             return False
 
-        with open('/etc/systemd/system/ptb-webcmd.service', 'w') as webcmd_service:
-            webcmd_service.write(WEBCMD_SERVICE_TEMPLATE)
-
-        with open('/etc/systemd/system/ptb-webcmd.timer', 'w') as webcmd_timer:
-            webcmd_timer.write(WEBCMD_TIMER_TEMPLATE)
-
-        logging.info('Starting webcmd timer')
-        if exec(['systemctl', 'enable', 'ptb-webcmd.timer'], verbose) != 0:
-            return False
-
+        with open('/etc/cron.d/webcmd', 'w') as fd:
+            schedule = '*/2 * * * * root /opt/ptb/webcmd.py'
+            fd.write(schedule)
 
         print('Setup done. You should now be able to connect to the pentest box '
               'from anywhere via a proxy jump (you will likely use a different '
