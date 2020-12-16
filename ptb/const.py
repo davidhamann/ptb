@@ -3,6 +3,8 @@ from pathlib import Path
 WEBCMD_PATH = '/opt/ptb'
 WEBCMD_APP = 'webcmd.py'
 
+WEBCMD_CRON = '*/2 * * * * root /opt/ptb/webcmd.py'
+
 CONFIG_SECTIONS = {
     'RemoteSSH': [
         ('Host', 'IP of remote SSH server:', ''),
@@ -13,7 +15,8 @@ CONFIG_SECTIONS = {
     ],
     'RemoteWeb': [
         ('Host',
-         'Hostname or IP of remote web server for commands (e.g. example.com):', ''),
+         'Hostname or IP of remote web server for commands '
+         '(e.g. example.com):', ''),
         ('FileName',
          'Name of hosted file containing the commands to execute:',
          'cmd.txt')
