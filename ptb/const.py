@@ -1,11 +1,12 @@
 from pathlib import Path
+from typing import Dict, List, Tuple
 
 WEBCMD_PATH = '/opt/ptb'
 WEBCMD_APP = 'webcmd.py'
 
 WEBCMD_CRON = '*/2 * * * * root /opt/ptb/webcmd.py'
 
-CONFIG_SECTIONS = {
+CONFIG_SECTIONS: Dict[str, List[Tuple]] = {
     'RemoteSSH': [
         ('Host', 'IP of remote SSH server:', ''),
         ('RemotePort', 'Port of remote SSH server:', 443),

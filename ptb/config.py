@@ -1,11 +1,12 @@
 import logging
 import configparser
 from typing import Optional, Tuple
+from pathlib import Path
 from ptb.const import CONFIG_SECTIONS
 
 
 class Config:
-    def __init__(self, config_file: Optional[str]):
+    def __init__(self, config_file: Optional[Path]):
         self.config_file = config_file
         self.parser = configparser.ConfigParser()
 
@@ -18,7 +19,12 @@ class Config:
         key_config: Tuple
 
         if self.config_file:
-            self._load_from_file()
+            if self.config_file.exists():
+                self._load_from_file()
+            else:
+                logging.warning(('Configfile file %s given, but does not '
+                                 'exist.' % self.config_file))
+                return False
 
         for section in CONFIG_SECTIONS:
             if section not in self.parser.sections():
@@ -50,11 +56,6 @@ class Config:
         return True
 
     def _load_from_file(self) -> None:
-        if not self.config_file.exists():
-            logging.warning(('Confile file %s given, but does not exist.'
-                             % self.config_file))
-            return
-
         try:
             self.parser.read(self.config_file)
         except configparser.Error:

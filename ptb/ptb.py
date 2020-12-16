@@ -22,7 +22,7 @@ class Ptb:
 
     def exec(self, command: List[str], stdout: Optional[TextIO] = None) -> int:
         """Wrapper for executing external commands."""
-        assert isinstance(command, type([]))
+        assert isinstance(command, List)
         joined = ' '.join(command)
         logging.info('Running %s' % joined)
 
@@ -60,23 +60,23 @@ class Ptb:
 
     def install_packages(self) -> None:
         """Install required and optional packages, optionally upgrade dist."""
-        exec(['apt-get', 'update'])
+        self.exec(['apt-get', 'update'])
 
         if self.config.parser['Local'].getboolean('Upgrade'):
-            exec(['apt-get', 'upgrade', '-y'])
+            self.exec(['apt-get', 'upgrade', '-y'])
 
         if self.config.parser['Local'].getboolean('DistUpgrade'):
-            exec(['apt-get', 'dist-upgrade', '-y'])
+            self.exec(['apt-get', 'dist-upgrade', '-y'])
 
-        exec(['apt-get', 'install', '-y'] + REQUIRED_PACKAGES)
+        self.exec(['apt-get', 'install', '-y'] + REQUIRED_PACKAGES)
 
         if self.config.parser['Local'].getboolean('SetupVNC'):
-            exec(['apt-get', 'install', '-y'] + VNC_PACKAGES)
+            self.exec(['apt-get', 'install', '-y'] + VNC_PACKAGES)
 
         add_packages = self.config.parser['Local']['AdditionalPackages']
         if add_packages != '' and add_packages != 'none':
             package_list = add_packages.split(' ')
-            exec(['apt-get', 'install', '-y'] + package_list)
+            self.exec(['apt-get', 'install', '-y'] + package_list)
 
     def configure_ssh(self) -> None:
         """Enable local SSH server, then set up keys for remote
@@ -86,34 +86,34 @@ class Ptb:
         ssh_port = self.config.parser['RemoteSSH']['RemotePort']
 
         # enable openssh server on pentest box
-        exec(['systemctl', 'enable', 'ssh'])
+        self.exec(['systemctl', 'enable', 'ssh'])
 
         # delete previous key if existing
-        exec(['rm', '-f', str(SSH_KEY_PATH)])
+        self.exec(['rm', '-f', str(SSH_KEY_PATH)])
 
         # generate keypair for remote server
-        exec(['ssh-keygen', '-f', str(SSH_KEY_PATH), '-N', ''])
+        self.exec(['ssh-keygen', '-f', str(SSH_KEY_PATH), '-N', ''])
 
         # clean known_hosts and re-add remote server
-        exec(['touch', str(HOME_PATH / '.ssh/known_hosts')])
-        exec(['ssh-keygen', '-R', ssh_host + ':' + ssh_port])
+        self.exec(['touch', str(HOME_PATH / '.ssh/known_hosts')])
+        self.exec(['ssh-keygen', '-R', ssh_host + ':' + ssh_port])
 
         with open(HOME_PATH / '.ssh/known_hosts', 'a') as known_hosts:
-            exec(['ssh-keyscan', '-H', '-p', ssh_port, ssh_host],
-                 stdout=known_hosts)
+            self.exec(['ssh-keyscan', '-H', '-p', ssh_port, ssh_host],
+                      stdout=known_hosts)
 
         # prompt for one-time remote login pass and upload key to remote server
         os.environ['SSHPASS'] = getpass(
                 f'Enter the password for the user {ssh_user} '
                 f'at {ssh_host} (for key upload): ')
 
-        exec(['sshpass', '-e', 'ssh-copy-id', '-i', str(SSH_KEY_PATH),
-              '-p', ssh_port, f'{ssh_user}@{ssh_host}'])
+        self.exec(['sshpass', '-e', 'ssh-copy-id', '-i', str(SSH_KEY_PATH),
+                   '-p', ssh_port, f'{ssh_user}@{ssh_host}'])
 
         # test login
         logging.info('Testing login...')
-        exec(['ssh', '-q', '-o', 'BatchMode=yes', '-i', str(SSH_KEY_PATH),
-              f'{ssh_user}@{ssh_host}', '-p', ssh_port, 'true'])
+        self.exec(['ssh', '-q', '-o', 'BatchMode=yes', '-i', str(SSH_KEY_PATH),
+                  f'{ssh_user}@{ssh_host}', '-p', ssh_port, 'true'])
         logging.info('Login with key works!')
 
     def install_service(self) -> None:
@@ -140,7 +140,7 @@ class Ptb:
 
     def install_cron(self) -> None:
         """Write-out webcmd script and set up cron to call it."""
-        exec(['mkdir', '-p', WEBCMD_PATH])
+        self.exec(['mkdir', '-p', WEBCMD_PATH])
 
         with open(WEBCMD_PATH + '/' + WEBCMD_APP, 'w') as f:
             f.write(
@@ -148,23 +148,23 @@ class Ptb:
                 .replace('{{host}}', self.config.parser['RemoteWeb']['Host'])
                 .replace('{{filename}}', self.config.parser['RemoteWeb']['FileName']))
 
-        exec(['chmod', '+x', WEBCMD_PATH + '/' + WEBCMD_APP])
+        self.exec(['chmod', '+x', WEBCMD_PATH + '/' + WEBCMD_APP])
 
         with open('/etc/cron.d/webcmd', 'w') as cron:
             cron.write(WEBCMD_CRON)
 
     def enable_services(self) -> None:
         logging.info('Enabling openssh-server')
-        exec(['systemctl', 'enable', 'ssh'])
+        self.exec(['systemctl', 'enable', 'ssh'])
 
         logging.info('Starting openssh-server')
-        exec(['systemctl', 'start', 'ssh'])
+        self.exec(['systemctl', 'start', 'ssh'])
 
         logging.info('Enabling autossh service')
-        exec(['systemctl', 'enable', 'ptb-ssh.service'])
+        self.exec(['systemctl', 'enable', 'ptb-ssh.service'])
 
         logging.info('Starting autossh service')
-        exec(['systemctl', 'start', 'ptb-ssh.service'])
+        self.exec(['systemctl', 'start', 'ptb-ssh.service'])
 
     def set_up(self) -> bool:
         logging.info('Starting to set up pentest box')
