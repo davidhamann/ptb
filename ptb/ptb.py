@@ -151,7 +151,7 @@ class Ptb:
         self.exec(['chmod', '+x', WEBCMD_PATH + '/' + WEBCMD_APP])
 
         with open('/etc/cron.d/ptb-webcmd', 'w') as cron:
-            cron.write(WEBCMD_CRON)
+            cron.write(WEBCMD_CRON + '\n')
 
     def enable_services(self) -> None:
         logging.info('Enabling openssh-server')
@@ -198,8 +198,8 @@ class Ptb:
         print('ssh -o ProxyCommand="ssh -i ~/.ssh/key-to-remote -W %h:%p -p '
               f'{self.config.parser["RemoteSSH"]["RemotePort"]} remote-user@'
               f'remote-ip" -p {self.config.parser["RemoteSSH"]["LocalPort"]} '
-              'pentestbox-user@127.0.0.1\n\n(Add -D 1080, if you would like to'
-              'run a SOCKS proxy on your local box for local tools.)')
+              'pentestbox-user@127.0.0.1\n\n(Add -D 1080, if you would like '
+              'to run a SOCKS proxy on your local box for local tools.)')
 
         return True
 

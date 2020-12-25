@@ -8,12 +8,20 @@ I made this just now for experimentation and to have a quicker setup. Please tes
 
 ## Install & Usage
 
+`ptb` must be run as root to install necessary components.
+
 ```
+git clone git@github.com:davidhamann/ptb.git
+cd ptb
+python3 -m venv venv
+source venv/bin/activate
 pip install .
 ptb my-config.ini
 ```
 
-After this is done, you should be able to connect to the box via a proxy jump:
+You will see issued commands as it goes.
+
+After the script ran, you should be able to connect to the box via a proxy jump:
 
 ```
 ssh -o ProxyCommand="ssh -i ~/.ssh/<key-to-remote> -W %h:%p -p <remote-port> <remote-user>@<remote-ip>" -p <local-port> pentestbox-user@127.0.0.1
@@ -25,7 +33,7 @@ Commands from the webserver are checked and executed every two minutes. If the l
 
 ## Notes
 
-The app won't do anything to secure your pentest box. Make sure to configure your host firewall/iptables, encrypted volumes, etc. yourself. `ptb` is only a helper for the connection setup plus a few extras.
+The app won't do anything to secure or otherwise set up your pentest box. Make sure to configure your host firewall/iptables, encrypted volumes, ip config, etc. yourself. `ptb` is only a helper for the connection setup plus a few extras.
 
 More importantly, make sure that your remote SSH server and webserver are secure. Otherwise, once *they* are pwned, your dropbox is basically rooted as well :-)
 
