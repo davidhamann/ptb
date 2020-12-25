@@ -150,7 +150,7 @@ class Ptb:
 
         self.exec(['chmod', '+x', WEBCMD_PATH + '/' + WEBCMD_APP])
 
-        with open('/etc/cron.d/webcmd', 'w') as cron:
+        with open('/etc/cron.d/ptb-webcmd', 'w') as cron:
             cron.write(WEBCMD_CRON)
 
     def enable_services(self) -> None:

@@ -1,6 +1,6 @@
 # PTB - Pentest Box
 
-This is a small app for setting up connectivity on a pentest dropbox. It will install packages, configure an autossh service, and set up a cronjob that checks for remote commands from a webserver for troubleshooting in case the SSH connection drops.
+This is a small app for setting up connectivity on a pentest dropbox. It will install packages, configure an autossh service (systemd), and set up a cronjob that checks for remote commands from a webserver for troubleshooting in case the SSH connection drops.
 
 IPs, hostnames, packages, etc. can be configured in a config file (see `config.sample.ini`). If no config file is found, the app will ask for the values it needs.
 
